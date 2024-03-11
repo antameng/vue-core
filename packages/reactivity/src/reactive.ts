@@ -74,8 +74,11 @@ export type UnwrapNestedRefs<T> = T extends Ref ? T : UnwrapRefSimple<T>
  * @see {@link https://vuejs.org/api/reactivity-core.html#reactive}
  */
 export function reactive<T extends object>(target: T): UnwrapNestedRefs<T>
+
+// 使用 const data = reactive({ name:456 })
 export function reactive(target: object) {
   // if trying to observe a readonly proxy, return the readonly version.
+  // 如果是只读，就直接返回
   if (isReadonly(target)) {
     return target
   }
@@ -240,12 +243,13 @@ export function shallowReadonly<T extends object>(target: T): Readonly<T> {
 }
 
 function createReactiveObject(
-  target: Target,
+  target: Target, //传入的对象
   isReadonly: boolean,
   baseHandlers: ProxyHandler<any>,
   collectionHandlers: ProxyHandler<any>,
   proxyMap: WeakMap<Target, any>,
 ) {
+  // 传入的对象不是对象，则warn 警告
   if (!isObject(target)) {
     if (__DEV__) {
       warn(`value cannot be made reactive: ${String(target)}`)
@@ -253,6 +257,7 @@ function createReactiveObject(
     return target
   }
   // target is already a Proxy, return it.
+  // 如果对象已经被代理对过了，也直接返回
   // exception: calling readonly() on a reactive object
   if (
     target[ReactiveFlags.RAW] &&
@@ -261,11 +266,13 @@ function createReactiveObject(
     return target
   }
   // target already has corresponding Proxy
+  // 对象已经有响应的代理
   const existingProxy = proxyMap.get(target)
   if (existingProxy) {
     return existingProxy
   }
   // only specific value types can be observed.
+  // 只能观察到特定的值类型。
   const targetType = getTargetType(target)
   if (targetType === TargetType.INVALID) {
     return target
@@ -274,6 +281,7 @@ function createReactiveObject(
     target,
     targetType === TargetType.COLLECTION ? collectionHandlers : baseHandlers,
   )
+  // 缓存新代理后的对象
   proxyMap.set(target, proxy)
   return proxy
 }
